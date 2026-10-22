@@ -1,0 +1,236 @@
+#include <stdio.h>
+
+#define MAX_CATEGORIAS 20
+#define MAX_PRODUTOS 100
+
+struct Categoria {
+    int codigo;
+    char nome[30];
+};
+
+struct Produto {
+    int codigo;
+    char nome[50];
+    int quantidade;
+    float preco;
+    int categoria_codigo;
+};
+
+struct Categoria categorias[MAX_CATEGORIAS];
+struct Produto produtos[MAX_PRODUTOS];
+int total_categorias = 0;
+int total_produtos = 0;
+
+/* Retorna a posicao da categoria. Se nao encontrar, retorna -1. */
+int buscarCategoria(int codigo) {
+    int i;
+    for (i = 0; i < total_categorias; i++) {
+        if (categorias[i].codigo == codigo) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int main() {
+    int opcao, subopcao;
+    int i, posicao, codigo_categoria, codigo_busca, repetido;
+    FILE *arquivo;
+
+    /* Carrega as categorias que foram salvas antes. */
+    arquivo = fopen("categorias.txt", "r");
+    if (arquivo != NULL) {
+        while (total_categorias < MAX_CATEGORIAS &&
+               fscanf(arquivo, "%d %29s", &categorias[total_categorias].codigo,
+                      categorias[total_categorias].nome) == 2) {
+            total_categorias++;
+        }
+        fclose(arquivo);
+    }
+
+    /* Carrega os produtos e confere se a categoria existe. */
+    arquivo = fopen("produtos.txt", "r");
+    if (arquivo != NULL) {
+        while (total_produtos < MAX_PRODUTOS &&
+               fscanf(arquivo, "%d %49s %d %f %d",
+                      &produtos[total_produtos].codigo,
+                      produtos[total_produtos].nome,
+                      &produtos[total_produtos].quantidade,
+                      &produtos[total_produtos].preco,
+                      &codigo_categoria) == 5) {
+            if (buscarCategoria(codigo_categoria) != -1) {
+                produtos[total_produtos].categoria_codigo = codigo_categoria;
+                total_produtos++;
+            }
+        }
+        fclose(arquivo);
+    }
+
+    do {
+        printf("\n=== Menu Principal ===\n");
+        printf("1 - Cadastrar Produto\n");
+        printf("2 - Listar Produtos\n");
+        printf("3 - Pesquisar Produto\n");
+        printf("4 - Categorias\n");
+        printf("5 - Sair\n");
+        printf("Escolha: ");
+        scanf("%d", &opcao);
+
+        if (opcao == 1) {
+            if (total_categorias == 0) {
+                printf("Cadastre uma categoria primeiro.\n");
+            } else if (total_produtos == MAX_PRODUTOS) {
+                printf("Limite de produtos atingido.\n");
+            } else {
+                printf("Codigo do produto: ");
+                scanf("%d", &produtos[total_produtos].codigo);
+
+                repetido = 0;
+                for (i = 0; i < total_produtos; i++) {
+                    if (produtos[i].codigo == produtos[total_produtos].codigo) {
+                        repetido = 1;
+                    }
+                }
+
+                if (produtos[total_produtos].codigo <= 0 || repetido == 1) {
+                    printf("Codigo invalido ou repetido. Tente cadastrar de novo.\n");
+                } else {
+                    printf("Nome do produto (uma palavra): ");
+                    scanf("%49s", produtos[total_produtos].nome);
+                    printf("Quantidade: ");
+                    scanf("%d", &produtos[total_produtos].quantidade);
+                    printf("Preco: ");
+                    scanf("%f", &produtos[total_produtos].preco);
+
+                    if (produtos[total_produtos].quantidade < 0 ||
+                        produtos[total_produtos].preco < 0) {
+                        printf("Quantidade e preco nao podem ser negativos.\n");
+                    } else {
+                        printf("\nCategorias:\n");
+                        for (i = 0; i < total_categorias; i++) {
+                            printf("%d - %s\n", categorias[i].codigo, categorias[i].nome);
+                        }
+                        printf("Codigo da categoria: ");
+                        scanf("%d", &codigo_categoria);
+                        posicao = buscarCategoria(codigo_categoria);
+
+                        if (posicao == -1) {
+                            printf("Categoria nao encontrada. Produto nao cadastrado.\n");
+                        } else {
+                            produtos[total_produtos].categoria_codigo = codigo_categoria;
+                            total_produtos++;
+                            printf("Produto cadastrado.\n");
+                        }
+                    }
+                }
+            }
+
+        } else if (opcao == 2) {
+            if (total_produtos == 0) {
+                printf("Nenhum produto cadastrado.\n");
+            } else {
+                for (i = 0; i < total_produtos; i++) {
+                    posicao = buscarCategoria(produtos[i].categoria_codigo);
+                    printf("\nCodigo: %d\n", produtos[i].codigo);
+                    printf("Nome: %s\n", produtos[i].nome);
+                    printf("Quantidade: %d\n", produtos[i].quantidade);
+                    printf("Preco: R$ %.2f\n", produtos[i].preco);
+                    if (posicao != -1) {
+                        printf("Categoria: %s\n", categorias[posicao].nome);
+                    }
+                }
+            }
+
+        } else if (opcao == 3) {
+            printf("Codigo do produto: ");
+            scanf("%d", &codigo_busca);
+            posicao = -1;
+            for (i = 0; i < total_produtos; i++) {
+                if (produtos[i].codigo == codigo_busca) {
+                    posicao = i;
+                }
+            }
+
+            if (posicao == -1) {
+                printf("Produto nao encontrado.\n");
+            } else {
+                i = buscarCategoria(produtos[posicao].categoria_codigo);
+                printf("Codigo: %d\n", produtos[posicao].codigo);
+                printf("Nome: %s\n", produtos[posicao].nome);
+                printf("Quantidade: %d\n", produtos[posicao].quantidade);
+                printf("Preco: R$ %.2f\n", produtos[posicao].preco);
+                if (i != -1) {
+                    printf("Categoria: %s\n", categorias[i].nome);
+                }
+            }
+
+        } else if (opcao == 4) {
+            do {
+                printf("\n--- Categorias ---\n");
+                printf("1 - Cadastrar Categoria\n");
+                printf("2 - Listar Categorias\n");
+                printf("3 - Voltar\n");
+                printf("Escolha: ");
+                scanf("%d", &subopcao);
+
+                if (subopcao == 1) {
+                    if (total_categorias == MAX_CATEGORIAS) {
+                        printf("Limite de categorias atingido.\n");
+                    } else {
+                        printf("Codigo positivo da categoria: ");
+                        scanf("%d", &codigo_categoria);
+                        posicao = buscarCategoria(codigo_categoria);
+                        if (codigo_categoria <= 0 || posicao != -1) {
+                            printf("Codigo invalido ou repetido.\n");
+                        } else {
+                            printf("Nome da categoria (uma palavra): ");
+                            scanf("%29s", categorias[total_categorias].nome);
+                            categorias[total_categorias].codigo = codigo_categoria;
+                            total_categorias++;
+                            printf("Categoria cadastrada.\n");
+                        }
+                    }
+                } else if (subopcao == 2) {
+                    if (total_categorias == 0) {
+                        printf("Nenhuma categoria cadastrada.\n");
+                    } else {
+                        for (i = 0; i < total_categorias; i++) {
+                            printf("%d - %s\n", categorias[i].codigo, categorias[i].nome);
+                        }
+                    }
+                } else if (subopcao != 3) {
+                    printf("Opcao invalida.\n");
+                }
+            } while (subopcao != 3);
+
+        } else if (opcao != 5) {
+            printf("Opcao invalida.\n");
+        }
+    } while (opcao != 5);
+
+    /* Salva as categorias. Cada linha tem codigo e nome. */
+    arquivo = fopen("categorias.txt", "w");
+    if (arquivo != NULL) {
+        for (i = 0; i < total_categorias; i++) {
+            fprintf(arquivo, "%d %s\n", categorias[i].codigo, categorias[i].nome);
+        }
+        fclose(arquivo);
+    }
+
+    /* Salva os produtos, incluindo o codigo da categoria. */
+    arquivo = fopen("produtos.txt", "w");
+    if (arquivo != NULL) {
+        for (i = 0; i < total_produtos; i++) {
+            fprintf(arquivo, "%d %s %d %.2f %d\n",
+                    produtos[i].codigo,
+                    produtos[i].nome,
+                    produtos[i].quantidade,
+                    produtos[i].preco,
+                    produtos[i].categoria_codigo);
+        }
+        fclose(arquivo);
+    }
+
+    printf("Dados salvos. Programa encerrado.\n");
+    return 0;
+}
